@@ -109,8 +109,9 @@ public class Migrate {
       // run migration
       // write output of each migration to disk.
       final Migration migration = migrations.get(i);
-      LOGGER.info("Migrating from version: {} to version {}.", migrations.get(i - 1).getVersion(), migration.getVersion());
+      LOGGER.info("Migrating from {} to {}", migrations.get(i - 1).getVersion(), migration.getVersion());
       final Path outputPath = runMigration(migration, inputPath);
+      LOGGER.info("Migration completed from {} to {}", migrations.get(i - 1).getVersion(), migration.getVersion());
       IOs.writeFile(outputPath.resolve(VERSION_FILE_NAME), migration.getVersion());
       inputPath = outputPath;
     }
@@ -131,15 +132,7 @@ public class Migrate {
     final Map<ResourceId, Stream<JsonNode>> inputDataStreams = inputData.entrySet().stream()
         .collect(Collectors.toMap(
             Map.Entry::getKey,
-            entry -> MoreStreams.toStream(entry.getValue())
-                .peek(r -> {
-                  try {
-                    jsonSchemaValidator.ensure(migration.getInputSchema().get(entry.getKey()), r);
-                  } catch (JsonValidationException e) {
-                    throw new IllegalArgumentException(
-                        String.format("Input data schema does not match declared input schema %s.", entry.getKey().getName()), e);
-                  }
-                })));
+            entry -> MoreStreams.toStream(entry.getValue())));
 
     final Map<ResourceId, RecordConsumer> outputStreams = createOutputStreams(migration, tmpOutputDir);
     // make the java compiler happy (it can't resolve that RecordConsumer is, in fact, a
