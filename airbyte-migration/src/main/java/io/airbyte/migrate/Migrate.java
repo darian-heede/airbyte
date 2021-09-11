@@ -36,7 +36,6 @@ import io.airbyte.commons.util.AutoCloseableIterator;
 import io.airbyte.commons.version.AirbyteVersion;
 import io.airbyte.commons.yaml.Yamls;
 import io.airbyte.validation.json.JsonSchemaValidator;
-import io.airbyte.validation.json.JsonValidationException;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
