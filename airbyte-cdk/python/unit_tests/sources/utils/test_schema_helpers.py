@@ -30,6 +30,7 @@ import sys
 from collections.abc import Mapping
 from pathlib import Path
 
+import jsonref
 from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 from pytest import fixture
 
@@ -38,8 +39,6 @@ MODULE_NAME = MODULE.__name__.split(".")[0]
 SCHEMAS_ROOT = "/".join(os.path.abspath(MODULE.__file__).split("/")[:-1]) / Path("schemas")
 
 
-# TODO (sherif) refactor ResourceSchemaLoader to completely separate the functionality for reading data from the package. See https://github.com/airbytehq/airbyte/issues/3222
-#  and the functionality for resolving schemas. See https://github.com/airbytehq/airbyte/issues/3222
 @fixture(autouse=True, scope="session")
 def create_and_teardown_schemas_dir():
     os.mkdir(SCHEMAS_ROOT)
@@ -78,8 +77,9 @@ class TestResourceSchemaLoader:
             "properties": {
                 "str": {"type": "string"},
                 "int": {"type": "integer"},
-                "obj": {"type": ["null", "object"], "properties": {"k1": {"type": "string"}}},
+                "obj": {"$ref": "#/definitions/shared_schema_"},
             },
+            "definitions": {"shared_schema_": {"type": ["null", "object"], "properties": {"k1": {"type": "string"}}}},
         }
 
         partial_schema = {
@@ -96,3 +96,43 @@ class TestResourceSchemaLoader:
 
         actual_schema = resolver.get_schema("complex_schema")
         assert actual_schema == expected_schema
+
+    @staticmethod
+    def test_shared_schemas_resolves_nested():
+        expected_schema = {
+            "type": ["null", "object"],
+            "properties": {
+                "str": {"type": "string"},
+                "int": {"type": "integer"},
+                "one_of": {"oneOf": [{"type": "string"}, {"$ref": "#/definitions/shared_schema_type_one"}]},
+                "obj": {"$ref": "#/definitions/shared_schema_type_one"},
+            },
+            "definitions": {"shared_schema_type_one": {"type": ["null", "object"], "properties": {"k1": {"type": "string"}}}},
+        }
+        partial_schema = {
+            "type": ["null", "object"],
+            "properties": {
+                "str": {"type": "string"},
+                "int": {"type": "integer"},
+                "one_of": {"oneOf": [{"type": "string"}, {"$ref": "shared_schema.json#/definitions/type_one"}]},
+                "obj": {"$ref": "shared_schema.json#/definitions/type_one"},
+            },
+        }
+
+        referenced_schema = {
+            "definitions": {
+                "type_one": {"$ref": "shared_schema.json#/definitions/type_nested"},
+                "type_nested": {"type": ["null", "object"], "properties": {"k1": {"type": "string"}}},
+            }
+        }
+
+        create_schema("complex_schema", partial_schema)
+        create_schema("shared/shared_schema", referenced_schema)
+
+        resolver = ResourceSchemaLoader(MODULE_NAME)
+
+        actual_schema = resolver.get_schema("complex_schema")
+        assert actual_schema == expected_schema
+        # Make sure generated schema is JSON serializable
+        assert json.dumps(actual_schema)
+        assert jsonref.JsonRef.replace_refs(actual_schema)

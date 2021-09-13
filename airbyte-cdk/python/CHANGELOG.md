@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.19
+Resolve nested schema references and move external references to single schema definitions.
+
 ## 0.1.18
 Fix incremental stream not saved state when internal limit config set.
 
