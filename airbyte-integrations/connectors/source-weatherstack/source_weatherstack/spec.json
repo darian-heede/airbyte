@@ -1,0 +1,38 @@
+{
+  "documentationUrl": "https://docsurl.com",
+  "connectionSpecification": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Weatherstack Spec",
+    "type": "object",
+    "required": [
+      "access_key",
+      "query"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "access_key": {
+        "type": "string",
+        "description": "API access token that can be generated via your Weatherstack account."
+      },
+      "query": {
+        "type": "string",
+        "description": "Location query to be passed to API, can also be a set of coordinates (lat, lon).",
+        "examples": [
+          "Berlin",
+          "New York",
+          "52.52 13.40"
+        ]
+      },
+      "forecast_days": {
+        "type": "integer",
+        "description": "Number of days to fetch forecast for.",
+        "default": 10
+      },
+      "hourly": {
+        "type": "boolean",
+        "description": "True if hourly data should be returned for forecast.",
+        "default": false
+      }
+    }
+  }
+}
